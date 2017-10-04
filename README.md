@@ -1,4 +1,8 @@
-Face Overlay
+### Face Overlay
+
+## Results
+
+### Woman
 
 | | | | | |
 |:--:|:--:|:--:|:--:|:--:|
@@ -8,3 +12,14 @@ Face Overlay
 Can be overlayed to "ideal" face
 
 <img width=400 src="/results/woman_beauty.png">
+
+### Man
+
+| | | | | |
+|:--:|:--:|:--:|:--:|:--:|
+|<img width=200 src="/men/01_man.jpg">| <img src="/men/02_man.jpg" width="200"> | <img src="/men/03_man.jpg" width="200"> | <img src="/men/04_man.jpg" width="200">| <img src="/men/05_man.jpg" width="200">|
+|<img src="/men/06_man.jpg" width="200">| <img src="/men/07_man.jpg" width="200"> | <img src="/men/08_man.jpg" width="200"> | <img src="/men/09_man.jpg" width="200">| <img src="/men/10_man.jpg" width="200">|
+
+Can be overlayed to "ideal" face
+
+<img width=400 src="/results/man_beauty.png">
