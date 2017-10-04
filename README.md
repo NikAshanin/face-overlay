@@ -7,4 +7,4 @@ Face Overlay
 
 Can be overlayed to "ideal" face
 
-<img width=400 src="/results/woman_beauty.jpg">
+<img width=400 src="/results/woman_beauty.png">
