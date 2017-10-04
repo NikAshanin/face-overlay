@@ -6,6 +6,7 @@ import dlib
 
 predictor_path = "shape_predictor_68_face_landmarks.dat"
 
+
 def detect_landmarks(image):
 
     # obtain detector and predictor
@@ -13,33 +14,32 @@ def detect_landmarks(image):
     predictor = dlib.shape_predictor(predictor_path)
 
     # convert image to numpy array
-    img = np.asanyarray(image)
-    img.flags.writeable =True
+    numpy_image = np.asanyarray(image)
+    numpy_image.flags.writeable = True
 
-    #output list
-    face_landmark_tuples=[]
+    # output list
+    face_landmark_tuples = []
 
     # Ask the detector to find the bounding boxes of each face. The 1 in the
-    # second argument indicates that we should upsample the image 1 time. This
+    # second argument indicates that we should up sample the image 1 time. This
     # will make everything bigger and allow us to detect more faces.
-    dets = detector(img, 1)
-    print("Number of faces detected: {}".format(len(dets)))
-    for k, rect in enumerate(dets):
+    detected_faces = detector(numpy_image, 1)
+
+    print("Number of faces detected: {}".format(len(detected_faces)))
+
+    for k, rect in enumerate(detected_faces):
         # Get the landmarks/parts for the face in box rect.
-        shape = predictor(img, rect)
-        face_landmark_tuples.append((k,rect,shape))
+        shape = predictor(numpy_image, rect)
+        face_landmark_tuples.append((k, rect, shape))
 
     return face_landmark_tuples
 
-def create_text_file(shape, image_name):
-    f = open(image_name+'.txt', 'w')
-    for i in xrange(0, shape.num_parts, 1):
-        f.write("{}\n".format(shape.part(i)).replace("(", "").replace(")", "").replace(",", ""))
-    f.close()
 
-
-# Read all jpg images in folder.
+# Create points for each image in folder.
 def create_points(path):
+
+    points_array = []
+
     # List all files in the directory and read points from text files one by one
     for filePath in sorted(os.listdir(path)):
 
@@ -47,99 +47,80 @@ def create_points(path):
             # Read image found.
             image = cv2.imread(os.path.join(path, filePath))
 
-            # Convert to floating point
-
             # detect faces and landmarks
             face_landmark_tuples = detect_landmarks(image)
 
             for k, rect, shape in face_landmark_tuples:
-                # create text file
-                create_text_file(shape, os.path.join(path, filePath))
+                # calculate points for photo
+                points = []
 
-                print("created" + filePath)
-
-
-
-# Read points from text files in directory
-def readPoints(path):
-    # Create an array of array of points.
-    pointsArray = []
-    
-    #List all files in the directory and read points from text files one by one
-    for filePath in sorted(os.listdir(path)):
-        
-        if filePath.endswith(".txt"):
-            
-            #Create an array of points.
-            points = []
-            
-            # Read points from filePath
-            with open(os.path.join(path, filePath)) as file :
-                for line in file :
-                    x, y = line.split()
+                for i in xrange(0, shape.num_parts, 1):
+                    x, y = "{}\n".format(shape.part(i)).replace("(", "").replace(")", "").replace(",", "").split()
                     points.append((int(x), int(y)))
-            
-            # Store array of points
-            pointsArray.append(points)
-            
-    return pointsArray
+
+                print("created points for " + filePath)
+
+                points_array.append(points)
+
+    return points_array
+
 
 # Read all jpg images in folder.
-def readImages(path) :
+def read_images(path):
     
-    #Create array of array of images.
-    imagesArray = []
+    # Create array of array of images.
+    images_array = []
     
-    #List all files in the directory and read points from text files one by one
+    # List all files in the directory and read points from text files one by one
     for filePath in sorted(os.listdir(path)):
        
         if filePath.endswith(".jpg"):
             # Read image found.
-            img = cv2.imread(os.path.join(path,filePath))
+            read_image = cv2.imread(os.path.join(path,filePath))
 
             # Convert to floating point
-            img = np.float32(img)/255.0
+            read_image = np.float32(read_image)/255.0
 
             # Add to array of images
-            imagesArray.append(img)
+            images_array.append(read_image)
             
-    return imagesArray
-                
+    return images_array
+
+
 # Compute similarity transform given two sets of two points.
 # OpenCV requires 3 pairs of corresponding points.
 # We are faking the third one.
-
-def similarityTransform(inPoints, outPoints) :
+def similarity_transform(inPoints, outPoints):
     s60 = math.sin(60*math.pi/180)
     c60 = math.cos(60*math.pi/180)
   
-    inPts = np.copy(inPoints).tolist()
-    outPts = np.copy(outPoints).tolist()
+    in_pts = np.copy(inPoints).tolist()
+    out_pts = np.copy(outPoints).tolist()
     
-    xin = c60*(inPts[0][0] - inPts[1][0]) - s60*(inPts[0][1] - inPts[1][1]) + inPts[1][0]
-    yin = s60*(inPts[0][0] - inPts[1][0]) + c60*(inPts[0][1] - inPts[1][1]) + inPts[1][1]
+    xin = c60*(in_pts[0][0] - in_pts[1][0]) - s60*(in_pts[0][1] - in_pts[1][1]) + in_pts[1][0]
+    yin = s60*(in_pts[0][0] - in_pts[1][0]) + c60*(in_pts[0][1] - in_pts[1][1]) + in_pts[1][1]
+
+    in_pts.append([np.int(xin), np.int(yin)])
     
-    inPts.append([np.int(xin), np.int(yin)])
+    xout = c60*(out_pts[0][0] - out_pts[1][0]) - s60*(out_pts[0][1] - out_pts[1][1]) + out_pts[1][0]
+    yout = s60*(out_pts[0][0] - out_pts[1][0]) + c60*(out_pts[0][1] - out_pts[1][1]) + out_pts[1][1]
+
+    out_pts.append([np.int(xout), np.int(yout)])
     
-    xout = c60*(outPts[0][0] - outPts[1][0]) - s60*(outPts[0][1] - outPts[1][1]) + outPts[1][0]
-    yout = s60*(outPts[0][0] - outPts[1][0]) + c60*(outPts[0][1] - outPts[1][1]) + outPts[1][1]
-    
-    outPts.append([np.int(xout), np.int(yout)])
-    
-    tform = cv2.estimateRigidTransform(np.array([inPts]), np.array([outPts]), False)
+    tform = cv2.estimateRigidTransform(np.array([in_pts]), np.array([out_pts]), False)
     
     return tform
 
 
 # Check if a point is inside a rectangle
-def rectContains(rect, point) :
-    if point[0] < rect[0] :
+def rect_contains(rect, point):
+    if point[0] < rect[0]:
         return False
-    elif point[1] < rect[1] :
+    elif point[1] < rect[1]:
         return False
-    elif point[0] > rect[2] :
+    elif point[0] > rect[2]:
         return False
-    elif point[1] > rect[3] :
+    elif point[1] > rect[3]:
         return False
     return True
 
@@ -152,7 +133,6 @@ def calculateDelaunayTriangles(rect, points):
     for p in points:
         subdiv.insert((p[0], p[1]))
 
-   
     # List of triangles. Each triangle is a list of 3 points ( 6 numbers )
     triangleList = subdiv.getTriangleList()
 
@@ -170,7 +150,7 @@ def calculateDelaunayTriangles(rect, points):
         pt2 = (t[2], t[3])
         pt3 = (t[4], t[5])        
         
-        if rectContains(rect, pt1) and rectContains(rect, pt2) and rectContains(rect, pt3):
+        if rect_contains(rect, pt1) and rect_contains(rect, pt2) and rect_contains(rect, pt3):
             ind = []
             for j in xrange(0, 3):
                 for k in xrange(0, len(points)):                    
@@ -178,31 +158,31 @@ def calculateDelaunayTriangles(rect, points):
                         ind.append(k)                            
             if len(ind) == 3:                                                
                 delaunayTri.append((ind[0], ind[1], ind[2]))
-        
 
-    
     return delaunayTri
 
 
-def constrainPoint(p, w, h) :
-    p =  ( min( max( p[0], 0 ) , w - 1 ) , min( max( p[1], 0 ) , h - 1 ) )
+def constrain_point(p, w, h):
+    p = (min(max(p[0], 0), w - 1), min(max(p[1], 0), h - 1))
     return p
+
 
 # Apply affine transform calculated using srcTri and dstTri to src and
 # output an image of size.
-def applyAffineTransform(src, srcTri, dstTri, size) :
+def applyAffineTransform(src, srcTri, dstTri, size):
     
     # Given a pair of triangles, find the affine transform.
     warpMat = cv2.getAffineTransform( np.float32(srcTri), np.float32(dstTri) )
     
     # Apply the Affine Transform just found to the src image
-    dst = cv2.warpAffine( src, warpMat, (size[0], size[1]), None, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101 )
+    dst = cv2.warpAffine(src, warpMat, (size[0], size[1]), None,
+                         flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
 
     return dst
 
 
 # Warps and alpha blends triangular regions from img1 and img2 to img
-def warpTriangle(img1, img2, t1, t2) :
+def warpTriangle(img1, img2, t1, t2):
 
     # Find bounding rectangle for each triangle
     r1 = cv2.boundingRect(np.float32([t1]))
@@ -218,7 +198,6 @@ def warpTriangle(img1, img2, t1, t2) :
         t2Rect.append(((t2[i][0] - r2[0]),(t2[i][1] - r2[1])))
         t2RectInt.append(((t2[i][0] - r2[0]),(t2[i][1] - r2[1])))
 
-
     # Get mask by filling triangle
     mask = np.zeros((r2[3], r2[2], 3), dtype = np.float32)
     cv2.fillConvexPoly(mask, np.int32(t2RectInt), (1.0, 1.0, 1.0), 16, 0)
@@ -233,27 +212,24 @@ def warpTriangle(img1, img2, t1, t2) :
     img2Rect = img2Rect * mask
 
     # Copy triangular region of the rectangular patch to the output image
-    img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] = img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] * ( (1.0, 1.0, 1.0) - mask )
+    img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] = img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] * ((1.0, 1.0, 1.0) - mask)
      
     img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] = img2[r2[1]:r2[1]+r2[3], r2[0]:r2[0]+r2[2]] + img2Rect
-
 
 
 if __name__ == '__main__' :
     
     path = 'women/'
 
-    create_points(path)
-
     # Dimensions of output image
     w = 600
     h = 600
 
     # Read points for all images
-    allPoints = readPoints(path)
+    allPoints = create_points(path)
     
     # Read all images
-    images = readImages(path)
+    images = read_images(path)
     
     # Eye corners
     eyecornerDst = [(np.int(0.3 * w),
@@ -265,16 +241,16 @@ if __name__ == '__main__' :
     pointsNorm = []
     
     # Add boundary points for delaunay triangulation
-    boundaryPts = np.array([(0,0), (w/2,0), (w-1,0), (w-1,h/2), ( w-1, h-1 ), ( w/2, h-1 ), (0, h-1), (0,h/2) ])
+    boundaryPts = np.array([(0, 0), (w/2, 0), (w-1, 0), (w-1, h/2), (w-1, h-1), (w/2, h-1), (0, h-1), (0,h/2)])
     
     # Initialize location of average points to 0s
-    pointsAvg = np.array([(0,0)]* ( len(allPoints[0]) + len(boundaryPts) ), np.float32())
+    pointsAvg = np.array([(0,0)] * (len(allPoints[0]) + len(boundaryPts)), np.float32)
     
     n = len(allPoints[0])
 
     numImages = len(images)
     
-    # Warp images and trasnform landmarks to output coordinate system,
+    # Warp images and transform landmarks to output coordinate system,
     # and find average of transformed landmarks.
     
     for i in xrange(0, numImages):
@@ -282,16 +258,16 @@ if __name__ == '__main__' :
         points1 = allPoints[i]
 
         # Corners of the eye in input image
-        eyecornerSrc  = [ allPoints[i][36], allPoints[i][45] ]
+        eyecornerSrc = [allPoints[i][36], allPoints[i][45]]
         
         # Compute similarity transform
-        tform = similarityTransform(eyecornerSrc, eyecornerDst)
+        tform = similarity_transform(eyecornerSrc, eyecornerDst)
         
         # Apply similarity transformation
-        img = cv2.warpAffine(images[i], tform, (w,h))
+        img = cv2.warpAffine(images[i], tform, (w, h))
 
         # Apply similarity transform on points
-        points2 = np.reshape(np.array(points1), (68,1,2))
+        points2 = np.reshape(np.array(points1), (68, 1, 2))
         
         points = cv2.transform(points2, tform)
         
@@ -305,40 +281,36 @@ if __name__ == '__main__' :
         
         pointsNorm.append(points)
         imagesNorm.append(img)
-    
 
     # Delaunay triangulation
     rect = (0, 0, w, h)
     dt = calculateDelaunayTriangles(rect, np.array(pointsAvg))
 
     # Output image
-    output = np.zeros((h,w,3), np.float32())
+    output = np.zeros((h,w,3), np.float32)
 
     # Warp input images to average image landmarks
-    for i in xrange(0, len(imagesNorm)) :
-        img = np.zeros((h,w,3), np.float32())
+    for i in xrange(0, len(imagesNorm)):
+        img = np.zeros((h, w, 3), np.float32)
         # Transform triangles one by one
-        for j in xrange(0, len(dt)) :
+        for j in xrange(0, len(dt)):
             tin = []
             tout = []
             
-            for k in xrange(0, 3) :                
+            for k in xrange(0, 3):
                 pIn = pointsNorm[i][dt[j][k]]
-                pIn = constrainPoint(pIn, w, h)
+                pIn = constrain_point(pIn, w, h)
                 
                 pOut = pointsAvg[dt[j][k]]
-                pOut = constrainPoint(pOut, w, h)
+                pOut = constrain_point(pOut, w, h)
                 
                 tin.append(pIn)
                 tout.append(pOut)
-            
-            
-            warpTriangle(imagesNorm[i], img, tin, tout)
 
+            warpTriangle(imagesNorm[i], img, tin, tout)
 
         # Add image intensities for averaging
         output = output + img
-
 
     # Divide by numImages to get average
     output = output / numImages
