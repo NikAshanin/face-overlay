@@ -1,17 +1,8 @@
-#!/usr/bin/env python
-
-# Copyright (c) 2016 Satya Mallick <spmallick@learnopencv.com>
-# All rights reserved. No warranty, explicit or implicit, provided.
-
-
 import os
 import cv2
 import numpy as np
 import math
-import sys
 import dlib
-from PIL import Image
-from PIL import ImageDraw
 
 predictor_path = "shape_predictor_68_face_landmarks.dat"
 
@@ -66,11 +57,6 @@ def create_points(path):
                 create_text_file(shape, os.path.join(path, filePath))
 
                 print("created" + filePath)
-
-
-
-
-
 
 
 
@@ -270,7 +256,10 @@ if __name__ == '__main__' :
     images = readImages(path)
     
     # Eye corners
-    eyecornerDst = [ (np.int(0.3 * w ), np.int(h / 3)), (np.int(0.7 * w ), np.int(h / 3)) ]
+    eyecornerDst = [(np.int(0.3 * w),
+                     np.int(h / 3)),
+                     (np.int(0.7 * w),
+                     np.int(h / 3))]
     
     imagesNorm = []
     pointsNorm = []
