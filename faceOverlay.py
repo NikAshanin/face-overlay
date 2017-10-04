@@ -104,9 +104,7 @@ def similarity_transform(inPoints, outPoints):
 
     out_pts.append([np.int(xout), np.int(yout)])
 
-    tform = cv2.estimateRigidTransform(np.array([in_pts]), np.array([out_pts]), False)
-
-    return tform
+    return cv2.estimateRigidTransform(np.array([in_pts]), np.array([out_pts]), False)
 
 
 # Check if a point is inside a rectangle
@@ -122,27 +120,24 @@ def rect_contains(rect, point):
     return True
 
 
-# Calculate delanauy triangle
-def calculateDelaunayTriangles(rect, points):
-    # Create subdiv
-    subdiv = cv2.Subdiv2D(rect)
+# Calculate Delaunay triangle
+def calculate_delaunay_triangles(rect, points):
+    # Create sub_div
+    sub_div = cv2.Subdiv2D(rect)
 
-    # Insert points into subdiv
+    # Insert points into sub_div
     for p in points:
-        subdiv.insert((p[0], p[1]))
+        sub_div.insert((p[0], p[1]))
 
     # List of triangles. Each triangle is a list of 3 points ( 6 numbers )
-    triangleList = subdiv.getTriangleList()
+    triangle_list = sub_div.getTriangleList()
 
     # Find the indices of triangles in the points array
 
-    delaunayTri = []
+    delaunay_tri = []
 
-    for t in triangleList:
-        pt = []
-        pt.append((t[0], t[1]))
-        pt.append((t[2], t[3]))
-        pt.append((t[4], t[5]))
+    for t in triangle_list:
+        pt = [(t[0], t[1]), (t[2], t[3]), (t[4], t[5])]
 
         pt1 = (t[0], t[1])
         pt2 = (t[2], t[3])
@@ -152,12 +147,12 @@ def calculateDelaunayTriangles(rect, points):
             ind = []
             for j in xrange(0, 3):
                 for k in xrange(0, len(points)):
-                    if (abs(pt[j][0] - points[k][0]) < 1.0 and abs(pt[j][1] - points[k][1]) < 1.0):
+                    if abs(pt[j][0] - points[k][0]) < 1.0 and abs(pt[j][1] - points[k][1]) < 1.0:
                         ind.append(k)
             if len(ind) == 3:
-                delaunayTri.append((ind[0], ind[1], ind[2]))
+                delaunay_tri.append((ind[0], ind[1], ind[2]))
 
-    return delaunayTri
+    return delaunay_tri
 
 
 def constrain_point(p, w, h):
@@ -281,7 +276,7 @@ if __name__ == '__main__':
 
     # Delaunay triangulation
     rect = (0, 0, w, h)
-    dt = calculateDelaunayTriangles(rect, np.array(pointsAvg))
+    dt = calculate_delaunay_triangles(rect, np.array(pointsAvg))
 
     # Output image
     output = np.zeros((h, w, 3), np.float32)
