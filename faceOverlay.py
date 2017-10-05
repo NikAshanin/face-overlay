@@ -5,9 +5,10 @@ import math
 import dlib
 
 predictor_path = "shape_predictor_68_face_landmarks.dat"
+image_path = 'women/'
 
 
-def detect_landmarks(image):
+def detect_landmarks(image, filepath):
     # obtain detector and predictor
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(predictor_path)
@@ -26,54 +27,50 @@ def detect_landmarks(image):
 
     print("Number of faces detected: {}".format(len(detected_faces)))
 
+    points = []
+
     for k, rect in enumerate(detected_faces):
         # Get the landmarks/parts for the face in box rect.
         shape = predictor(numpy_image, rect)
-        face_landmark_tuples.append((k, rect, shape))
 
-    return face_landmark_tuples
+        for index in xrange(0, shape.num_parts, 1):
+            x, y = "{}\n".format(shape.part(index)).replace("(", "").replace(")", "").replace(",", "").split()
+            points.append((int(x), int(y)))
+
+        print("created points for " + filepath)
 
 
-# Create points for each image in folder.
-def create_points(path):
-    points_array = []
+    return points
+
+
+# Create landmarks for each image in folder.
+def create_landmarks():
+    landmarks_array = []
 
     # List all files in the directory and read points from text files one by one
-    for filePath in sorted(os.listdir(path)):
+    for filePath in sorted(os.listdir(image_path)):
 
         if filePath.endswith(".jpg"):
             # Read image found.
-            image = cv2.imread(os.path.join(path, filePath))
+            image = cv2.imread(os.path.join(image_path, filePath))
 
             # detect faces and landmarks
-            face_landmark_tuples = detect_landmarks(image)
+            landmarks_array.append(detect_landmarks(image, filePath))
 
-            for k, rect, shape in face_landmark_tuples:
-                # calculate points for photo
-                points = []
-
-                for i in xrange(0, shape.num_parts, 1):
-                    x, y = "{}\n".format(shape.part(i)).replace("(", "").replace(")", "").replace(",", "").split()
-                    points.append((int(x), int(y)))
-
-                print("created points for " + filePath)
-
-                points_array.append(points)
-
-    return points_array
+    return landmarks_array
 
 
 # Read all jpg images in folder.
-def read_images(path):
+def read_images():
     # Create array of array of images.
     images_array = []
 
     # List all files in the directory and read points from text files one by one
-    for filePath in sorted(os.listdir(path)):
+    for filePath in sorted(os.listdir(image_path)):
 
         if filePath.endswith(".jpg"):
             # Read image found.
-            read_image = cv2.imread(os.path.join(path, filePath))
+            read_image = cv2.imread(os.path.join(image_path, filePath))
 
             # Convert to floating point
             read_image = np.float32(read_image) / 255.0
@@ -87,12 +84,12 @@ def read_images(path):
 # Compute similarity transform given two sets of two points.
 # OpenCV requires 3 pairs of corresponding points.
 # We are faking the third one.
-def similarity_transform(inPoints, outPoints):
+def similarity_transform(in_points, out_points):
     s60 = math.sin(60 * math.pi / 180)
     c60 = math.cos(60 * math.pi / 180)
 
-    in_pts = np.copy(inPoints).tolist()
-    out_pts = np.copy(outPoints).tolist()
+    in_pts = np.copy(in_points).tolist()
+    out_pts = np.copy(out_points).tolist()
 
     xin = c60 * (in_pts[0][0] - in_pts[1][0]) - s60 * (in_pts[0][1] - in_pts[1][1]) + in_pts[1][0]
     yin = s60 * (in_pts[0][0] - in_pts[1][0]) + c60 * (in_pts[0][1] - in_pts[1][1]) + in_pts[1][1]
@@ -211,17 +208,15 @@ def warp_triangle(img1, img2, t1, t2):
 
 if __name__ == '__main__':
 
-    path = 'women/'
-
     # Dimensions of output image
     w = 600
     h = 600
 
-    # Read points for all images
-    allPoints = create_points(path)
+    # Read landmarks for all images
+    allPoints = create_landmarks()
 
     # Read all images
-    images = read_images(path)
+    images = read_images()
 
     # Eye corners
     eyecornerDst = [(np.int(0.3 * w),
